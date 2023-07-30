@@ -1,12 +1,9 @@
 # About
-This is an Autonomous driving project that uses Computer Vision Algorithms, Python, Path Planning
-and real-world hardware to self direct an RC car around a running track.
+This is an Autonomous driving project that uses Computer Vision Algorithms, Python and real-world hardware to autonomously drive a mock Cybertruck around a track.
 
 # Skills
-- ROS Nav Stack ROS Plugins?
-- C++ & Python for real-time embedded control
-- Signal Processing Techniques
-- Motion Planning & Control Algorithms
+- Python for Computer Vision, Signal Processing, High-Level Embedded Control
+- Motion Planning & Control Algorithms (PID)
 
 # Vision Algorithm Breakdown:
 - Collect and Process Images from Camera
@@ -82,3 +79,25 @@ and real-world hardware to self direct an RC car around a running track.
         - Threshold for Max Throttle
         - STOP
     - Retry Connection (Button) to Bluetooth Signal Control
+
+
+# File Structure Breakdown:
+main_project_folder/
+    - main.py
+    - camera.py
+    - encoder.py --> don't need this
+    - control/
+        - __init__.py
+        - throttle.py
+        - steering.py
+    - vision.py
+    - bluetooth.py
+    - calibration.py --> how can I use this?
+    - testing/
+        - __init__.py
+        - test_camera.py
+        - test_encoder.py
+        - test_control.py
+        - test_vision.py
+        - test_bluetooth.py
+    - utils.py
