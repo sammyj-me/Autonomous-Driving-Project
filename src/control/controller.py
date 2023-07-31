@@ -31,6 +31,8 @@ class Controller:
         
     def _update_steering(self, offset): # PID based on offset to control steering
         self.steering = self.pid_steering.update(offset)
+        
+        
 
     def _update_throttle(self, offset): # PID based on offset to control throttle
         self.throttle = self.pid_throttle.update(offset)

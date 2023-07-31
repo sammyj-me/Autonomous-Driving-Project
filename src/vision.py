@@ -52,6 +52,9 @@ class Vision:
         lines = None
         offset_from_center = 0
         
+        left_lines = []  # lines on the left side of the image
+        right_lines = []  # lines on the right side of the image
+        
         # Iterate over the contours
         for i, contour in enumerate(contours):
             # Get the bounding box of the contour
@@ -93,12 +96,24 @@ class Vision:
                 # Draw detected lines
                 if visualize is True:
                     for line in lines:
-                        x1, y1, x2, y2 = line[0]
-                        angle = np.arctan2(y2 - y1, x2 - x1)  # Compute the angle of the line
-                        if abs(angle) >= angle_threshold_rad:  # Check if the angle is within the threshold
-                            cv2.line(contour_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    
-                         
+                        for x1, y1, x2, y2 in line:
+                            angle = np.arctan2(y2 - y1, x2 - x1)  # Compute the angle of the line
+                            if abs(angle) >= angle_threshold_rad:  # Check if the angle is within the threshold
+                                if x2 - x1 != 0:  # This check prevents division by zero
+                                    slope = (y2 - y1) / (x2 - x1) # OpenCV references top left corner as 0,0
+                                else:
+                                    slope = float('inf')  # vertical line
+
+                                if slope < 0:  # left lane has a negative slope
+                                    left_lines.append((x1, y1))
+                                    left_lines.append((x2, y2))
+                                    cv2.line(contour_image, (x1, y1), (x2, y2), (0, 255, 0), 2)                     
+                                    
+                                else:  # right lane has a positive slope or vertical
+                                    right_lines.append((x1, y1))
+                                    right_lines.append((x2, y2))
+                                    cv2.line(contour_image, (x1, y1), (x2, y2), (0, 255, 0), 2)                     
+                                                         
         #-------------------------------
         
         # find lane lines on left and right hand side of frame
@@ -106,23 +121,9 @@ class Vision:
         # find right lane line pixel position
         # find middle point between left and right pixel position
         position_status = "No offset found"
-        if lines is not None:
-            left_lines = []  # lines on the left side of the image
-            right_lines = []  # lines on the right side of the image
-            for line in lines:
-                for x1, y1, x2, y2 in line:
-                    if x2 - x1 != 0:  # This check prevents division by zero
-                        slope = (y2 - y1) / (x2 - x1) # OpenCV references top left corner as 0,0
-                    else:
-                        slope = float('inf')  # vertical line
-
-                    if slope < 0:  # left lane has a negative slope
-                        left_lines.append((x1, y1))
-                        left_lines.append((x2, y2))
-                    else:  # right lane has a positive slope or vertical
-                        right_lines.append((x1, y1))
-                        right_lines.append((x2, y2))
-            
+        poly_left = None
+        poly_right = None
+        if lines is not None:               
             if left_lines: # Fit a polynomial to the points in the left lane                
                 left_line_points = np.array(left_lines)
                 poly_left = np.poly1d(np.polyfit(left_line_points[:, 1], left_line_points[:, 0], 2))
@@ -130,13 +131,19 @@ class Vision:
             if right_lines: # Fit a polynomial to the points in the right lane
                 right_line_points = np.array(right_lines)
                 poly_right = np.poly1d(np.polyfit(right_line_points[:, 1], right_line_points[:, 0], 2))
-                
+            
             # Calculate the y-coordinate at the car's position
             y_value = lower_half.shape[0]
-
-            # Calculate the x-coordinates of the left and right polynomials at the y-coordinate
-            x_left = poly_left(y_value)
-            x_right = poly_right(y_value)
+            
+            # Default X Left and X Right are at the min/max of the frame.
+            x_left = 0
+            x_right = lower_half.shape[1]
+            
+            if poly_left:
+                # Calculate the x-coordinates of the left and right polynomials at the y-coordinate
+                x_left = poly_left(y_value)
+            if poly_right:
+                x_right = poly_right(y_value)
 
             # Calculate the middle point of the lane
             lane_middle_point = (x_left + x_right) / 2
