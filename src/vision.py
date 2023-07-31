@@ -2,13 +2,13 @@ import cv2
 import numpy as np
 
 class Vision:
-    def __init__(self):
+    def __init__(self, visualize):
+        self.visualize = visualize
         return
     
-    def process_frame(self, frame): # the meat and potatoes     
-        
+    def process_frame(self, frame): # the meat and potatoes        
         # apply vision algorithm
-        offset_from_center = self._calculate_offset(frame)
+        offset_from_center = self._calculate_offset(frame, self.visualize)
         # radius_of_curve = self._calculate_radius(frame)
         
         return { # return as library
@@ -16,7 +16,7 @@ class Vision:
             # 'radius': radius_of_curve,
         }
     
-    def _calculate_offset(self, frame):
+    def _calculate_offset(self, frame, visualize):
         
         # Load image and convert to grayscale
         image = frame
@@ -80,8 +80,8 @@ class Vision:
                     # print("Ignoring large bounding box")
                     continue
                 
-                cv2.drawContours(image[height//2:], [contour], -1, (0, 255, 0), 3)
-                        
+                # These contours must be drawn to perform edge detection on them
+                cv2.drawContours(image[height//2:], [contour], -1, (0, 255, 0), 3)                        
                 cv2.drawContours(contour_image, contours, -1, (255), 1) # for houghline transform
                 
                 # Apply Canny Edge Detection
@@ -91,11 +91,13 @@ class Vision:
                 lines = cv2.HoughLinesP(edges, 1, np.pi/180, 110, minLineLength=10, maxLineGap=250)
 
                 # Draw detected lines
-                for line in lines:
-                    x1, y1, x2, y2 = line[0]
-                    angle = np.arctan2(y2 - y1, x2 - x1)  # Compute the angle of the line
-                    if abs(angle) >= angle_threshold_rad:  # Check if the angle is within the threshold
-                        cv2.line(contour_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                if visualize is True:
+                    for line in lines:
+                        x1, y1, x2, y2 = line[0]
+                        angle = np.arctan2(y2 - y1, x2 - x1)  # Compute the angle of the line
+                        if abs(angle) >= angle_threshold_rad:  # Check if the angle is within the threshold
+                            cv2.line(contour_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    
                          
         #-------------------------------
         
@@ -103,17 +105,21 @@ class Vision:
         # find left lane line pixel position
         # find right lane line pixel position
         # find middle point between left and right pixel position
-        
+        position_status = "No offset found"
         if lines is not None:
             left_lines = []  # lines on the left side of the image
             right_lines = []  # lines on the right side of the image
             for line in lines:
                 for x1, y1, x2, y2 in line:
-                    slope = (y2-y1)/(x2-x1)
+                    if x2 - x1 != 0:  # This check prevents division by zero
+                        slope = (y2 - y1) / (x2 - x1) # OpenCV references top left corner as 0,0
+                    else:
+                        slope = float('inf')  # vertical line
+
                     if slope < 0:  # left lane has a negative slope
                         left_lines.append((x1, y1))
                         left_lines.append((x2, y2))
-                    else:  # right lane has a positive slope
+                    else:  # right lane has a positive slope or vertical
                         right_lines.append((x1, y1))
                         right_lines.append((x2, y2))
             
@@ -148,10 +154,22 @@ class Vision:
                 position_status = "Too far left"
             else:
                 position_status = "Centered"
+                        
+            # Print the offset
+            print("Offset from the middle of the lane: {:.2f} pixels".format(offset_from_center))
+            print(position_status)
+        
+        
+        if visualize is True:
+            # For Visualization/Testing:
+            minimap = cv2.resize(contour_image, (640, 360)) # Resize the warped contour image to create the minimap
+            image_with_minimap = image.copy() # Create a copy of the original image to paste the minimap onto
+            image_with_minimap[0:minimap.shape[0], -minimap.shape[1]:] = minimap # Paste the minimap onto the copy of the original image
+            image_with_minimap = cv2.resize(image_with_minimap, (1280,720))      
             
             # Put text
             cv2.putText(
-                image,  # image where to put the text
+                image_with_minimap,  # image where to put the text
                 position_status,  # text
                 (10, 50),  # bottom-left corner of the text in the image (in pixels)
                 cv2.FONT_HERSHEY_SIMPLEX,  # font type
@@ -159,20 +177,11 @@ class Vision:
                 (0, 255, 0),  # font color in BGR
                 2,  # thickness of the lines used to draw a text
                 cv2.LINE_AA  # line type
-            )
+            )        
             
-            # Print the offset
-            print("Offset from the middle of the lane: {:.2f} pixels".format(offset_from_center))
-        
-        # For Visualization/Testing:
-        minimap = cv2.resize(contour_image, (640, 360)) # Resize the warped contour image to create the minimap
-        image_with_minimap = image.copy() # Create a copy of the original image to paste the minimap onto
-        image_with_minimap[0:minimap.shape[0], -minimap.shape[1]:] = minimap # Paste the minimap onto the copy of the original image
-        image_with_minimap = cv2.resize(image_with_minimap, (1280,720))      
-                
-        # Display the image
-        cv2.imshow('image', image_with_minimap)
-        cv2.waitKey()
-        # cv2.destroyAllWindows()
+            # Display the image
+            cv2.imshow('image', image_with_minimap)
+            cv2.waitKey()
+            # cv2.destroyAllWindows()
         
         return offset_from_center

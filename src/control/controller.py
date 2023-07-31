@@ -26,15 +26,11 @@ class Controller:
         offset = processed_frame['offset']
         self._update_steering(offset)
         self._update_throttle(offset)
-        # radius = processed_frame['offset']
-        
-        self._update_steeringupdate_steering(offset)
-        self._update_throttle(offset)
         
         return
         
     def _update_steering(self, offset): # PID based on offset to control steering
         self.steering = self.pid_steering.update(offset)
 
-    def _update_throttle(self, offset):
+    def _update_throttle(self, offset): # PID based on offset to control throttle
         self.throttle = self.pid_throttle.update(offset)

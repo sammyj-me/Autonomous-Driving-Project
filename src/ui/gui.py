@@ -53,36 +53,9 @@ class Application(tk.Frame):
         self.stop = tk.Button(self.toolbar, text="EMERGENCY STOP", fg="red", command=self.emergency_stop, height=2, width=20, font = ("Arial", 10))
         self.stop.pack(side="left", padx=self.pad_x_val, pady=self.pad_y_val)
 
-    def choose_source(self):
-        source = messagebox.askquestion("Choose Source", "Do you want to use the onboard camera? If you select No, you will be asked to choose a file.")
-        if source == "yes":
-            # set your camera to use the onboard camera
-            self.camera.set_source(0)  # usually 0 is the default camera
-        else:
-            filename = filedialog.askopenfilename()
-            # set your camera to use the file
-            self.camera.set_source(filename)
 
     def start_self_driving(self):
-        print("Starting Self Driving...")
-        self.choose_source()
-                
-        while True:
-            frame = self.camera.read_frame()
-
-            if frame is not None:
-                start_time = time.time()
-                processed_frame = self.vision.process_frame(frame)
-                self.controller.update(processed_frame)       
-            
-            else:
-                break
-
-        end_time = time.time()  # end timer
-        elapsed_time = end_time - start_time  # elapsed time in seconds
-        print(f"The elapsed time is {elapsed_time} seconds")
-        
-        self.camera.release()
+        print("Starting Script")
         
 
     def select_camera_func(self):
